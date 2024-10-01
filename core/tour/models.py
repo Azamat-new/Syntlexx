@@ -102,7 +102,7 @@ class TourImage(models.Model):
 
 class Booking(models.Model):
     tour = models.ForeignKey(Tour, on_delete=models.CASCADE, related_name='bookings')
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='bookings')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_bookings')
     date = models.ForeignKey(DateTour, on_delete=models.CASCADE, related_name='bookings')
     participants = models.IntegerField('Количество участников', validators=[MinValueValidator(1)])
     total_price = models.DecimalField('Итоговая цена', max_digits=10, decimal_places=2)
