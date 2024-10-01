@@ -37,6 +37,7 @@ class Category(models.Model):
 class RegionTour(models.Model):
     title = models.CharField('Название региона', max_length=100)
     description = models.TextField('Описание региона')
+    image = models.ImageField(upload_to='images/', blank=True, null=True)  # Убедитесь, что это поле существует
     slug = models.SlugField(unique=True, blank=True, null=True, max_length=100)
 
     def save(self, *args, **kwargs):
@@ -52,11 +53,17 @@ class DateTour(models.Model):
     start_date = models.DateField('Дата начала тура')
     end_date = models.DateField('Дата окончания тура')
 
+    TOUR_TYPES = [
+        ('group', 'Групповой'),
+        ('individual', 'Индивидуальный'),
+    ]
+    tour_type = models.CharField('Тип тура', max_length=20, choices=TOUR_TYPES)
+
     SEASON_CHOICES = [
         ('spring', 'Весна'),
         ('summer', 'Лето'),
         ('autumn', 'Осень'),
-        ('winter', 'Зима')
+        ('winter', 'Зима'),
     ]
     season = models.CharField('Сезон', max_length=100, choices=SEASON_CHOICES)
 

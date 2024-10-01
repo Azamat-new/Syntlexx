@@ -1,12 +1,11 @@
 from rest_framework import generics, filters
 from django.db.models import Avg, Prefetch
-from .models import Banner, Tour, Feedback, Rating
-from .serializers import BannerSerializer, TourSerializer, FeedbackSerializer
+from .models import Banner, Tour, Feedback, Rating, RegionTour, DateTour
+from .serializers import BannerSerializer, TourSerializer, FeedbackSerializer, RegionTourSerializer
 
 
 # Получение списка баннеров и создание нового баннера
-
-class BannerIndexlView(generics.ListAPIView):
+class BannerIndexView(generics.ListAPIView):
     queryset = Banner.objects.all()
     serializer_class = BannerSerializer
 
@@ -23,7 +22,9 @@ class TourSearchView(generics.ListAPIView):
     search_fields = ['title', 'description', 'route_tour']
 
     def get_queryset(self):
-        queryset = Tour.objects.all()
+        queryset = Tour.objects.prefetch_related(
+            Prefetch('ratings', queryset=Rating.objects.all())
+        ).annotate(average_rating=Avg('ratings__score'))
         return queryset
 
 
@@ -33,7 +34,7 @@ class TourListView(generics.ListAPIView):
     def get_queryset(self):
         queryset = Tour.objects.prefetch_related(
             Prefetch('ratings', queryset=Rating.objects.all())
-        ).annotate(average_rating=Avg('ratings__score')).order_by('-average_rating')[::-1][:4]
+        ).annotate(average_rating=Avg('ratings__score')).order_by('-average_rating')[:4]
         return queryset
 
 
@@ -47,7 +48,7 @@ class TourSeasonView(generics.ListAPIView):
         ).filter(is_published=True)
 
         if season:
-            queryset = queryset.filter(date_tour__season=season)
+            queryset = queryset.filter(datetour__season=season)
 
         return queryset.distinct()
 
@@ -60,3 +61,23 @@ class FeedbackListView(generics.ListAPIView):
         if tour_id:
             return Feedback.objects.filter(tour__id=tour_id).select_related('tour')
         return Feedback.objects.all().select_related('tour')
+
+
+# Представление для списка всех областей
+class RegionTourListView(generics.ListAPIView):
+    queryset = RegionTour.objects.all()
+    serializer_class = RegionTourSerializer
+
+
+# Представление для отображения конкретной области по ее ID
+class RegionTourDetailView(generics.RetrieveAPIView):
+    queryset = RegionTour.objects.all()
+    serializer_class = RegionTourSerializer
+
+
+class TourDetailView(generics.RetrieveAPIView):
+    queryset = Tour.objects.prefetch_related(
+        Prefetch('ratings', queryset=Rating.objects.all())
+    ).annotate(average_rating=Avg('ratings__score'))
+    serializer_class = TourSerializer
+    lookup_field = 'id'  # Будем искать тур по ID

@@ -1,13 +1,8 @@
 from django.db import models
-from django.db.models.signals import post_save
 from django.dispatch import receiver
-from django.contrib import admin
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 from django.core.mail import send_mail
-from django.http import HttpResponse
 
-from tour.models import Tour, Booking
-import csv
 
 
 class MyUserManager(BaseUserManager):
@@ -59,6 +54,7 @@ class MyUser(AbstractBaseUser):
     favorite_tours = models.ManyToManyField('tour.Tour', related_name='favorited_by_users', blank=True)
     bookings = models.ManyToManyField('tour.Booking', blank=True, related_name='users')
 
+
     USERNAME_FIELD = 'phone_number'
     REQUIRED_FIELDS = ['username']
 
@@ -81,47 +77,5 @@ class MyUser(AbstractBaseUser):
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
 
-@admin.register(MyUser)
-class MyUserAdmin(admin.ModelAdmin):
-    list_display = ('username', 'phone_number', 'email', 'status', 'is_admin')
-    search_fields = ('username', 'phone_number', 'email')
-    list_filter = ('status', 'is_admin')
 
-@admin.register(Tour)
-class TourAdmin(admin.ModelAdmin):
-    list_display = ('title', 'category', 'price', 'available_seats')
-    search_fields = ('title', 'category')
-    list_filter = ('category', 'price')
-
-@admin.register(Booking)
-class BookingAdmin(admin.ModelAdmin):
-    list_display = ('tour', 'user', 'date', 'status', 'total_price')
-    search_fields = ('tour__title', 'user__username')
-    list_filter = ('status', 'date')
-
-@admin.action(description='Выгрузить отчеты по бронированиям')
-def export_bookings_to_csv(modeladmin, request, queryset):
-    response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = 'attachment; filename="bookings.csv"'
-    writer = csv.writer(response)
-    writer.writerow(['Tour', 'User', 'Date', 'Status', 'Total Price'])
-
-    for booking in queryset:
-        writer.writerow([booking.tour, booking.user, booking.date, booking.status, booking.total_price])
-
-    return response
-
-@admin.register(Booking)
-class BookingAdmin(admin.ModelAdmin):
-    actions = [export_bookings_to_csv]
-
-@receiver(post_save, sender=Tour)
-def send_tour_creation_notification(sender, instance, created, **kwargs):
-    if created:
-        send_mail(
-            'Новый тур создан',
-            f'Тур "{instance.title}" был успешно создан!',
-            'admin@yourapp.com',
-            [instance.author.email],
-        )
 
